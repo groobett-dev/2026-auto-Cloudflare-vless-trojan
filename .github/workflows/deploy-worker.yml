@@ -63,9 +63,11 @@ jobs:
       - name: Obfuscate Code
         if: steps.check_update.outputs.updated == 'true'
         run: |
-          npm install -g esbuild
-          esbuild Vless_workers_pages/_worker.js --bundle --minify --format=esm --outfile=_worker_obf.js --external:cloudflare:sockets
-          echo "代码混淆完成！"
+          # The previous esbuild config caused issues, let's use a safer approach for this specific script
+          npm install -g terser
+          # terser 可以在不破坏作用域的情况下安全压缩，更适合原作者各种千奇百怪的变量名
+          terser Vless_workers_pages/_worker.js -c -m -o _worker_obf.js
+          echo "代码混淆压缩完成！"
 
       - name: Generate Wrangler Config
         if: steps.check_update.outputs.updated == 'true'
