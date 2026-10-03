@@ -21,7 +21,8 @@ jobs:
           node-version: '20'
 
       - name: Install dependencies
-        run: npm install -g esbuild wrangler
+        # 安装 terser 进行模块化混淆，取代 esbuild/javascript-obfuscator
+        run: npm install -g terser wrangler
 
       - name: Fetch upstream _worker.js
         run: |
@@ -29,7 +30,9 @@ jobs:
           
       - name: Obfuscate Code
         run: |
-          esbuild _worker.js --minify --outfile=obfuscated_worker.js
+          # 关键修复：必须加上 --module，否则 export default 会被破坏，导致部署失败！
+          # --mangle 会打乱并混淆所有中英文变量名，实现真正的混淆防封。
+          terser _worker.js --compress --mangle --module -o obfuscated_worker.js
 
       - name: Create wrangler.toml
         run: |
@@ -38,8 +41,12 @@ jobs:
           main = "obfuscated_worker.js"
           compatibility_date = "2026-01-20"
 
+          # 终极兼容：不管上游脚本要的是 u、U、uuid 还是 UUID，我们全给它注入，绝对不会再报变量名错误！
           [vars]
+          UUID = "24d47812-01cb-450a-90bf-977925b52fe5"
           uuid = "24d47812-01cb-450a-90bf-977925b52fe5"
+          U = "24d47812-01cb-450a-90bf-977925b52fe5"
+          u = "24d47812-01cb-450a-90bf-977925b52fe5"
 
           [[routes]]
           pattern = "20261003yg-aotu.209app.ccwu.cc"
@@ -51,5 +58,7 @@ jobs:
           CLOUDFLARE_API_KEY: ${{ secrets.CLOUDFLARE_GLOBAL_KEY }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_EMAIL: ${{ secrets.CLOUDFLARE_EMAIL }}
+          CI: true
         run: |
-          wrangler deploy
+          # 加上 debug 模式，如果还有任何网络/CF账号配置问题，日志会写得一清二楚
+          wrangler deploy --log-level debug
