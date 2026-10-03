@@ -23,17 +23,16 @@ jobs:
           node-version: '24'
 
       - name: Install dependencies
-        run: npm install -g terser
+        # 重新把 wrangler 加回来，我们直接用原生命令部署
+        run: npm install -g terser wrangler
 
       - name: Obfuscate Code
         run: |
-          # 进行模块化代码混淆压缩
           terser Vless_workers_pages/_worker.js --compress --mangle --module -o obfuscated_worker.js
 
       - name: Create wrangler.toml
         run: |
           cat << 'EOF' > wrangler.toml
-          # 已修改：将 Worker 名称伪装成普通的边缘计算服务，绝不出现任何敏感字眼
           name = "edge-service-2026"
           main = "obfuscated_worker.js"
           compatibility_date = "2026-01-20"
@@ -50,10 +49,10 @@ jobs:
           EOF
 
       - name: Deploy to Cloudflare
-        uses: cloudflare/wrangler-action@v3
+        # 抛弃官方刁钻的 Action 插件，直接用原生命令跑！
         env:
           CLOUDFLARE_API_KEY: ${{ secrets.CLOUDFLARE_GLOBAL_KEY }}
           CLOUDFLARE_EMAIL: ${{ secrets.CLOUDFLARE_EMAIL }}
-        with:
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          wrangler deploy
