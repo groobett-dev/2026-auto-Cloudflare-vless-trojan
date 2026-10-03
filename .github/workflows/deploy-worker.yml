@@ -1,0 +1,95 @@
+name: Auto Sync, Obfuscate & Deploy Worker
+
+on:
+  schedule:
+    - cron: '30 2 * * *'
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 智能对比上游更新
+        id: check_update
+        run: |
+          mkdir -p Vless_workers_pages
+          curl -sL https://raw.githubusercontent.com/yonggekkk/Cloudflare-vless-trojan/main/Vless_workers_pages/_worker.js -o upstream_worker.js
+          
+          if [ -f Vless_workers_pages/_worker.js ]; then
+            if cmp -s Vless_workers_pages/_worker.js upstream_worker.js; then
+              if [ "${{ github.event_name }}" == "workflow_dispatch" ] || [ "${{ github.event_name }}" == "push" ]; then
+                echo "手动触发或Push，强制执行后续部署..."
+                echo "updated=true" >> $GITHUB_OUTPUT
+              else
+                echo "上游代码未更新，跳过。"
+                echo "updated=false" >> $GITHUB_OUTPUT
+              fi
+            else
+              echo "检测结果：发现上游代码有新版本！准备执行部署..."
+              mv upstream_worker.js Vless_workers_pages/_worker.js
+              echo "updated=true" >> $GITHUB_OUTPUT
+              git config --global user.name "github-actions[bot]"
+              git config --global user.email "github-actions[bot]@users.noreply.github.com"
+              git add Vless_workers_pages/_worker.js
+              git commit -m "Auto sync: upstream _worker.js updated" || true
+              git push || true
+            fi
+          else
+            echo "初次运行，直接部署！"
+            mv upstream_worker.js Vless_workers_pages/_worker.js
+            echo "updated=true" >> $GITHUB_OUTPUT
+            git config --global user.name "github-actions[bot]"
+            git config --global user.email "github-actions[bot]@users.noreply.github.com"
+            git add Vless_workers_pages/_worker.js
+            git commit -m "Auto sync: init _worker.js" || true
+            git push || true
+          fi
+
+      - name: Setup Node.js
+        if: steps.check_update.outputs.updated == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Obfuscate Code
+        if: steps.check_update.outputs.updated == 'true'
+        run: |
+          npm install -g esbuild
+          esbuild Vless_workers_pages/_worker.js --bundle --minify --format=esm --outfile=_worker_obf.js --external:cloudflare:sockets
+          echo "代码混淆完成！"
+
+      - name: Generate Wrangler Config
+        if: steps.check_update.outputs.updated == 'true'
+        run: |
+          cat << 'EOF' > wrangler.toml
+          name = "cf-yg-worker"
+          main = "_worker_obf.js"
+          compatibility_date = "2026-01-20"
+          workers_dev = false
+
+          routes = [
+            { pattern = "20261003yg-aotu.209app.ccwu.cc", custom_domain = true }
+          ]
+
+          [vars]
+          uuid = "${{ secrets.WORKER_VAR_UUID }}"
+          EOF
+
+      - name: Deploy to Cloudflare Workers (Native CLI)
+        if: steps.check_update.outputs.updated == 'true'
+        env:
+          CLOUDFLARE_API_KEY: ${{ secrets.CLOUDFLARE_GLOBAL_KEY }}
+          CLOUDFLARE_EMAIL: ${{ secrets.CLOUDFLARE_EMAIL }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npm install -g wrangler
+          wrangler deploy
