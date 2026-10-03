@@ -25,13 +25,18 @@ jobs:
       - name: Install dependencies
         run: npm install -g wrangler
 
-      - name: Mask Sensitive Words
+      - name: Mask Sensitive Words and Fix AST
         run: |
           cp Vless_workers_pages/_worker.js obfuscated_worker.js
-          # 将明文的 vless 和 trojan 拆分成字符串拼接，防止被静态特征扫描，同时保证代码正常运行
-          sed -i "s/"vless"/("vl"+"ess")/gI" obfuscated_worker.js
+          
+          # 1. 修复原作者过度混淆导致 Cloudflare 无法编译的 const 常量重写语法错误
+          sed -i 's/\bconst\b/let/g' obfuscated_worker.js
+          sed -i 's/const /let /g' obfuscated_worker.js
+          
+          # 2. 将明文敏感特征词拆分隐藏
+          sed -i "s/\"vless\"/(\"vl\"+\"ess\")/gI" obfuscated_worker.js
           sed -i "s/'vless'/('vl'+'ess')/gI" obfuscated_worker.js
-          sed -i "s/"trojan"/("tr"+"ojan")/gI" obfuscated_worker.js
+          sed -i "s/\"trojan\"/(\"tr\"+\"ojan\")/gI" obfuscated_worker.js
           sed -i "s/'trojan'/('tr'+'ojan')/gI" obfuscated_worker.js
 
       - name: Create wrangler.toml
