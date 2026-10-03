@@ -7,6 +7,9 @@ on:
   push:
     branches:
       - main
+    paths:
+      # 当这个本地文件发生更新时，自动触发部署
+      - 'Vless_workers_pages/_worker.js'
 
 jobs:
   deploy:
@@ -23,16 +26,12 @@ jobs:
       - name: Install dependencies
         run: npm install -g terser
 
-      - name: Fetch upstream _worker.js
-        run: |
-          curl -sL "https://raw.githubusercontent.com/yonggekkk/Cloudflare-vless-trojan/main/Vless_workers_pages/_worker.js" -o _worker.js
-          
       - name: Obfuscate Code
         run: |
-          terser _worker.js --compress --mangle --module -o obfuscated_worker.js
+          # 直接提取本地仓库中的文件进行混淆
+          terser Vless_workers_pages/_worker.js --compress --mangle --module -o obfuscated_worker.js
 
       - name: Create wrangler.toml
-        # 使用 Secrets 动态替换 UUID，绝不泄露明文
         run: |
           cat << 'EOF' > wrangler.toml
           name = "vless-trojan-2026"
