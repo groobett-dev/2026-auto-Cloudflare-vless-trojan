@@ -53,7 +53,7 @@ jobs:
           u = "${{ secrets.WORKER_VAR_UUID }}"
 
           [[routes]]
-          pattern = "auto-20261003yg.208.dpdns.org"
+          pattern = "20261003yg-aotu.209app.ccwu.cc"
           custom_domain = true
           EOF
 
