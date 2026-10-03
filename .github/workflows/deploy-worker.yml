@@ -23,7 +23,6 @@ jobs:
           node-version: '24'
 
       - name: Install dependencies
-        # 重新把 wrangler 加回来，我们直接用原生命令部署
         run: npm install -g terser wrangler
 
       - name: Obfuscate Code
@@ -49,10 +48,9 @@ jobs:
           EOF
 
       - name: Deploy to Cloudflare
-        # 抛弃官方刁钻的 Action 插件，直接用原生命令跑！
         env:
           CLOUDFLARE_API_KEY: ${{ secrets.CLOUDFLARE_GLOBAL_KEY }}
           CLOUDFLARE_EMAIL: ${{ secrets.CLOUDFLARE_EMAIL }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          wrangler deploy
+          npx wrangler deploy
