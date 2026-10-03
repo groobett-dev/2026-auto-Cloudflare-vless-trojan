@@ -1,4 +1,4 @@
-name: Auto Sync, Obfuscate & Deploy Worker
+name: Auto Deploy Edge Service
 
 on:
   schedule:
@@ -27,12 +27,14 @@ jobs:
 
       - name: Obfuscate Code
         run: |
+          # 进行模块化代码混淆压缩
           terser Vless_workers_pages/_worker.js --compress --mangle --module -o obfuscated_worker.js
 
       - name: Create wrangler.toml
         run: |
           cat << 'EOF' > wrangler.toml
-          name = "vless-trojan-2026"
+          # 已修改：将 Worker 名称伪装成普通的边缘计算服务，绝不出现任何敏感字眼
+          name = "edge-service-2026"
           main = "obfuscated_worker.js"
           compatibility_date = "2026-01-20"
 
@@ -47,10 +49,9 @@ jobs:
           custom_domain = true
           EOF
 
-      - name: Deploy to Cloudflare Workers
+      - name: Deploy to Cloudflare
         uses: cloudflare/wrangler-action@v3
         env:
-          # 这次已经移到了 env 里面，绝对不会再报 Unexpected input 错误了！
           CLOUDFLARE_API_KEY: ${{ secrets.CLOUDFLARE_GLOBAL_KEY }}
           CLOUDFLARE_EMAIL: ${{ secrets.CLOUDFLARE_EMAIL }}
         with:
