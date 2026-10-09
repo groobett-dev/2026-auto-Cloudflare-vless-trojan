@@ -1,6 +1,5 @@
 import sys, re
 
-# 中文注释词库映射表
 COMMENT_DICT = {
     "set default values if not provided": "设置默认全局变量（若未提供环境配置）",
     "check if user is authenticated": "校验访问用户令牌与身份鉴权",
@@ -44,6 +43,11 @@ def process_comments_only(code: str) -> str:
     pattern = r"(?<!:)//[^\r\n]*"
     return re.sub(pattern, replace_comment, code)
 
+def fix_const_assignment_ast(code: str) -> str:
+    # 仅修复上游自带代码中 esbuild 无法通过的 const 赋值语法缺陷，将 const 换为 let
+    code = re.sub(r'\bconst\b', 'let', code)
+    return code
+
 def main():
     if len(sys.argv) < 3:
         input_path = "Vless_workers_pages/_worker.js"
@@ -55,13 +59,16 @@ def main():
     with open(input_path, "r", encoding="utf-8-sig") as f:
         code = f.read()
 
-    # 核心原则：不破坏任何 JS 语法与变量，只对 // 注释内容进行中文转义
+    # 1. 修复上游 esbuild 报错：将 const 改为 let
+    code = fix_const_assignment_ast(code)
+
+    # 2. 仅对 // 注释内容翻译为中文，保持核心逻辑不混淆
     code = process_comments_only(code)
 
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(code)
 
-    print(f"SUCCESS: {output_path} comments translated to Chinese, file length: {len(code)}")
+    print(f"SUCCESS: {output_path} processed, length: {len(code)}")
 
 if __name__ == "__main__":
     main()
