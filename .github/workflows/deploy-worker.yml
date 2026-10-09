@@ -2,7 +2,7 @@ name: Auto Deploy Edge Service
 
 on:
   schedule:
-    # 每天定时检测上游仓库是否有新更新 (UTC 02:00 / 北京时间 10:00)
+    # 每天定时检测上游仓库是否有新代码更新 (UTC 02:00 / 北京时间 10:00)
     - cron: '0 2 * * *'
   workflow_dispatch:
   push:
@@ -70,12 +70,12 @@ jobs:
           
           echo "has_changes=${HAS_CHANGES}" >> $GITHUB_OUTPUT
           
-          # 仅当有更新或手动触发时，拉取最新代码并仅对 // 注释进行中文翻译
+          # 仅当有更新或手动触发时，拉取上游代码并处理
           if [ "${HAS_CHANGES}" == "true" ]; then
-            echo "Fetching upstream _worker.js from yonggekkk/Cloudflare-vless-trojan..."
+            echo "Fetching upstream _worker.js..."
             curl -s -H "User-Agent: Mozilla/5.0" "https://raw.githubusercontent.com/${UPSTREAM_REPO}/main/Vless_workers_pages/_worker.js" -o Vless_workers_pages/_worker.js
             
-            # 执行纯注释中文翻译（不混淆代码语法）
+            # 运行脚本修复 AST 并将 // 注释翻译为中文
             python scripts/transform.py Vless_workers_pages/_worker.js Vless_workers_pages/_worker.js
             
             echo "${UPSTREAM_SHA}" > "${RECORD_FILE}"
@@ -102,6 +102,11 @@ jobs:
 
       - name: Install dependencies
         run: npm install -g wrangler
+
+      - name: Prepare Worker Script
+        run: |
+          # 无论代码拉取途径如何，确保 const 替换为 let 以彻底避免 esbuild 编译报错
+          sed -i 's/\bconst\b/let/g' Vless_workers_pages/_worker.js
 
       - name: Create wrangler.toml
         run: |
