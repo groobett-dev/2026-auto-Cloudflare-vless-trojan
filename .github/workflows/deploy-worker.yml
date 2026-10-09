@@ -121,6 +121,7 @@ jobs:
           [[routes]]
           pattern = "20261003yg-aotu.209app.ccwu.cc"
           custom_domain = true
+          zone_name = "209app.ccwu.cc"
           EOF
 
       - name: Deploy to Cloudflare
