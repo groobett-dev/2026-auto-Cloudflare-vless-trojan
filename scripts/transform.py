@@ -233,8 +233,14 @@ def verify_cf_entrypoints(code: str) -> bool:
     return False
 
 def fix_upstream_ast_const(code: str) -> str:
-    # 修复上游变量重复赋值 AST 瑕疵，杜绝 esbuild Cannot assign to constant
-    return re.sub(r"\bconst\b", "let", code)
+    # 1. 修复上游变量重复赋值 AST 瑕疵，杜绝 esbuild Cannot assign to constant
+    code = re.sub(r"\bconst\b", "let", code)
+    # 2. 解除上游 javascript-obfuscator 针对 Function.prototype.toString 的自卫死循环陷阱（兼容 Cloudflare Workers workerd 引擎）
+    code = code.replace("a0Gf();", "")
+    code = code.replace("a0GH();", "")
+    code = code.replace("new u(a0S)['\\x79\\x59\\x71\\x50\\x43\\x47']()", "true")
+    code = code.replace("T=(''+function(){return 0x4f3*-0x3+-0x19e2+0x28bb;})['\\x69\\x6e\\x64\\x65\\x78\\x4f\\x66']('\\x0a')!==-(-0x1*-0xe81+0x11bb+0xdf*-0x25)", "T=false")
+    return code
 
 def main():
     if len(sys.argv) < 3:
