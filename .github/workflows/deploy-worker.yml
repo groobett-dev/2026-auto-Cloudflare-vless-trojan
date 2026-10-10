@@ -111,7 +111,7 @@ jobs:
       - name: Create wrangler.toml
         run: |
           cat << 'EOF' > wrangler.toml
-          name = "edge-service-2026"
+          name = "cm-edge-2026-main"
           main = "Vless_workers_pages/_worker.js"
           compatibility_date = "2026-01-20"
           workers_dev = false
