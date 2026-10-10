@@ -126,6 +126,11 @@ jobs:
           pattern = "20261003yg-aotu.209app.ccwu.cc"
           custom_domain = true
           zone_name = "209app.ccwu.cc"
+
+          [[routes]]
+          pattern = "20261003-auto-yg.209app.ccwu.cc"
+          custom_domain = true
+          zone_name = "209app.ccwu.cc"
           EOF
 
       - name: Deploy to Cloudflare
@@ -134,4 +139,4 @@ jobs:
           CLOUDFLARE_EMAIL: ${{ secrets.CLOUDFLARE_EMAIL }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          npx wrangler deploy --minify
+          npx wrangler deploy
