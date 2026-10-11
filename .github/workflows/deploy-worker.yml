@@ -116,7 +116,12 @@ jobs:
           compatibility_date = "2026-01-20"
           workers_dev = false
 
-          [vars]
+          
+[[kv_namespaces]]
+binding = "KV"
+id = "6511c45849bf46cba6eacbdde148c4ae"
+
+[vars]
           UUID = "${{ secrets.WORKER_VAR_UUID }}"
           uuid = "${{ secrets.WORKER_VAR_UUID }}"
           U = "${{ secrets.WORKER_VAR_UUID }}"
